@@ -57,3 +57,27 @@ internal func _correctedRoot<T: BinaryFloatingPoint>(
   guard step.isFinite else { return nil }
   return y - step
 }
+
+/// One Newton step on `f(y) = xyⁿ - 1`, refining an estimate of the `-n`th root.
+///
+/// Mirrors `_correctedRoot`, but converges on the reciprocal root directly, so a
+/// negative order does not have to be reached by dividing an already-rounded
+/// positive root. `xyⁿ` is evaluated to roughly twice the working precision, so
+/// the residual survives the cancellation around one.
+/// Returns `nil` where the step cannot be taken, leaving the estimate in place.
+@_transparent
+@usableFromInline
+internal func _correctedInverseRoot<T: BinaryFloatingPoint>(
+  _ y: T, exponent n: UInt, of x: T
+) -> T? {
+  guard (2...1024).contains(n), y.isNormal, x.isFinite else { return nil }
+  let power = Augmented.power(y, n)
+  guard power.head.isNormal else { return nil }
+  let scaled = Augmented.product(power, (head: x, tail: 0))
+  guard scaled.head.isNormal else { return nil }
+  // scaled is close to one, so the leading subtraction is exact.
+  let residual = (1 - scaled.head) - scaled.tail
+  let step = y * residual / T(n)
+  guard step.isFinite else { return nil }
+  return y + step
+}

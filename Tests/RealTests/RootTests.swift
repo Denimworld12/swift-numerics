@@ -81,6 +81,27 @@ final class RootTests: XCTestCase {
                    accuracy: 1e-12)
   }
 
+  /// A negative order is refined on the reciprocal root directly, rather than by
+  /// dividing an already-rounded positive root, which cost the last bit.
+  ///
+  /// Each case below is nearest-rounded; taking the positive root and dividing
+  /// lands one ulp away.
+  func testNegativeOrderDoesNotLoseTheLastBit() {
+    let cases: [(x: Double, n: Int, expected: Double)] = [
+      (0x1.474ffb8e8ab15p+700, -2, 0x1.c4cd683c11bbap-351),
+      (0x1.0320af3143e02p+583, -3, 0x1.94bbaa2346a50p-195),
+      (0x1.d00fde9a82208p-87,  -4, 0x1.730bedd4e9566p+21),
+      (0x1.fde31f36a2429p+270, -5, 0x1.be1735ab7abedp-55),
+      (0x1.49fc9caf95272p-261, -6, 0x1.5b0a1aa4d98e0p+43),
+      (0x1.4e425851345a6p-490, -7, 0x1.ecdb62f95a09dp+69),
+      (0x1.ffc7d1e67d336p-211, -8, 0x1.30740dd9d40ccp+26),
+      (0x1.69441af25d3dap+86,  -9, 0x1.4f483326c1b8bp-10),
+    ]
+    for (x, n, expected) in cases {
+      XCTAssertEqual(expected, Double.root(x, n), "root(\(x), \(n))")
+    }
+  }
+
   /// The correction must not cost accuracy on inputs that are not exact powers.
   func testRootIsAccurateOnNonExactInputs() {
     var state = UInt64(0x9E3779B97F4A7C15)
